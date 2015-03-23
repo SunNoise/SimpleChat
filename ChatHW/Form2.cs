@@ -17,9 +17,8 @@ namespace ChatHW
         private Socket g_conn;
         private byte[] g_bmsg = new byte[Message.SIZE];
         private DiffieHellman dh;
-        private long ourPublicKey;
         private Random rnd;
-        private string whoAmI;
+        private string whoAmI, ourPublicKey;
 
         public Form2(Socket conn, string title, IPEndPoint remote_ep = null)
         {
@@ -106,7 +105,7 @@ namespace ChatHW
             Message message;
             if (receivedCount > 0)
             {
-                var decBuffer = DES.Decrypt(encBuffer.CompleteBytes, BitConverter.GetBytes(dh.key));
+                var decBuffer = DES.Decrypt(encBuffer.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
                 message = new Message(decBuffer);
             }
             else
@@ -118,17 +117,15 @@ namespace ChatHW
             if (receivedCount == 0)
             {
                 receivedCount++;
-                if (BitConverter.IsLittleEndian)
-                    Array.Reverse(message.getFunction);
-                var func = BitConverter.ToInt16(message.getFunction, 0);
-                if (func == (Int16) Function.SIMP_INIT_COMM)
+                var func = BitConverter.ToChar(message.getFunction, 0);
+                if (func == (char) Function.SIMP_INIT_COMM)
                 {
                     CalculateDH(msg);
                     SendKey(Function.SIMP_KEY_COMPUTED);
                     g_conn.BeginReceive(g_bmsg, 0, g_bmsg.Length, SocketFlags.None, new AsyncCallback(Receive), g_conn);
                     return;
                 }
-                else if (func == (Int16) Function.SIMP_KEY_COMPUTED)
+                else if (func == (char) Function.SIMP_KEY_COMPUTED)
                 {
                     UpdateDH(msg);
                     g_conn.BeginReceive(g_bmsg, 0, g_bmsg.Length, SocketFlags.None, new AsyncCallback(Receive), g_conn);
@@ -217,7 +214,7 @@ namespace ChatHW
         private void Send(string text)
         {
             var message = new Message(text);
-            var encBuffer = DES.Encrypt(message.CompleteBytes, BitConverter.GetBytes(dh.key));
+            var encBuffer = DES.Encrypt(message.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
 
             g_conn.Send(encBuffer, 0, Message.SIZE, SocketFlags.None);
             PublishMessage(listBox1, text);

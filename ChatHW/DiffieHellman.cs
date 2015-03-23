@@ -9,33 +9,33 @@ namespace ChatHW
     {
         public long q = 2426697107, a = 17123207;
         private long x;
-        internal long key;
-        public DiffieHellman(Random rnd, long y, out long publicKey)
+        internal string key;
+        public DiffieHellman(Random rnd, long y, out string publicKey)
         {
             x = LongRandom(q, rnd);
-            publicKey = fast_exp(a, x, q);
+            publicKey = fast_exp(a, x, q).ToString();
 
-            key = fast_exp(y, x, q);
+            key = fast_exp(y, x, q).ToString().PadLeft(8, '0').Substring(0, 8);
         }
 
-        public DiffieHellman(Random rnd, out long publicKey)
+        public DiffieHellman(Random rnd, out string publicKey)
         {
             x = LongRandom(q, rnd);
-            publicKey = fast_exp(a, x, q);
+            publicKey = fast_exp(a, x, q).ToString();
         }
 
-        public DiffieHellman(Random rnd, long q, long a, long y, out long publicKey)
+        public DiffieHellman(Random rnd, long q, long a, long y, out string publicKey)
         {
             x = LongRandom(q, rnd);
-            publicKey = fast_exp(a, x, q);
+            publicKey = fast_exp(a, x, q).ToString();
 
-            key = fast_exp(y, x, q);
+            key = fast_exp(y, x, q).ToString().PadLeft(8, '0').Substring(0, 8);
         }
 
-        public DiffieHellman(Random rnd, long q, long a, out long publicKey)
+        public DiffieHellman(Random rnd, long q, long a, out string publicKey)
         {
             x = LongRandom(q, rnd);
-            publicKey = fast_exp(a, x, q);
+            publicKey = fast_exp(a, x, q).ToString();
         }
 
         private long LongRandom(long max, Random rand)
@@ -68,7 +68,7 @@ namespace ChatHW
 
         public void Update(long y)
         {
-            key = fast_exp(y, x, q);
+            key = fast_exp(y, x, q).ToString().PadLeft(8, '0').Substring(0, 8);
         }
     }
 }

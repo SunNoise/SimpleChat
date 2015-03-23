@@ -51,9 +51,7 @@ namespace ChatHW
 
             _size = Convert.ToByte(message.Length);
 
-            intBytes = BitConverter.GetBytes((Int16)func);
-            if (BitConverter.IsLittleEndian)
-                Array.Reverse(intBytes);
+            intBytes = BitConverter.GetBytes((char)func);
             ReplaceBytes(_function, intBytes);
 
             intBytes = BitConverter.GetBytes(0);
