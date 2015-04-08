@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
+using Utils.Dlg;
 
 namespace ChatHW
 {
@@ -56,7 +58,8 @@ namespace ChatHW
             }
         }
 
-        private int bytesInBuffer = 0;
+        private byte[] fileTransBuffer;
+        private int bytesInBuffer = 0, bytesInFileBuffer = 0;
         private byte[] buffer = new byte[Message.SIZE];
         private int receivedCount = 0;
         private void Receive(IAsyncResult ar)
@@ -112,29 +115,92 @@ namespace ChatHW
             {
                 message = encBuffer;
             }
-            var msg = Encoding.GetEncoding(28591).GetString(message.getData);
-            msg = msg.Replace("\0", "");
+            var msg = message.getData;
+            var func = BitConverter.ToChar(message.getFunction, 0);
+            string msgString = "";
             if (receivedCount == 0)
             {
+                msgString = Encoding.GetEncoding(28591).GetString(msg);
+                msgString = msgString.Replace("\0", "");
                 receivedCount++;
-                var func = BitConverter.ToChar(message.getFunction, 0);
                 if (func == (char) Function.SIMP_INIT_COMM)
                 {
-                    CalculateDH(msg);
+                    CalculateDH(msgString);
                     SendKey(Function.SIMP_KEY_COMPUTED);
                     g_conn.BeginReceive(g_bmsg, 0, g_bmsg.Length, SocketFlags.None, new AsyncCallback(Receive), g_conn);
                     return;
                 }
-                else if (func == (char) Function.SIMP_KEY_COMPUTED)
+                if (func == (char) Function.SIMP_KEY_COMPUTED)
                 {
-                    UpdateDH(msg);
+                    UpdateDH(msgString);
                     g_conn.BeginReceive(g_bmsg, 0, g_bmsg.Length, SocketFlags.None, new AsyncCallback(Receive), g_conn);
                     return;
                 }
+                throw new Exception("Rare Error Found!");
             }
-            if (!String.IsNullOrEmpty(msg))
-                PublishMessage(listBox1, msg);
-
+            switch (func)
+            {
+                case (char)Function.SIMP_CHAT_MSG:
+                    msgString = Encoding.GetEncoding(28591).GetString(msg);
+                    msgString = msgString.Replace("\0", "");
+                    if (!String.IsNullOrEmpty(msgString))
+                    PublishMessage(listBox1, msgString);
+                    break;
+                case (char)Function.SIMP_CHAT_FILEINIT:
+                    msgString = Encoding.GetEncoding(28591).GetString(msg);
+                    msgString = msgString.Replace("\0", "");
+                    var split = msgString.Split(',');
+                    var filename = split[0];
+                    PublishMessage(listBox1, "Peer is trying to send: "+ filename);
+                    var size = int.Parse(split[1]);
+                    var filenameSplit = filename.Split('.');
+                    string filext = "";
+                    if(filenameSplit.Length > 1)
+                        filext = filenameSplit.Last();
+                    SaveFileDiag(filext, size);
+                    break;
+                case (char)Function.SIMP_CHAT_FILEINITANS:
+                    msgString = Encoding.GetEncoding(28591).GetString(msg);
+                    msgString = msgString.Replace("\0", "");
+                    bool answer = bool.Parse(msgString);
+                    if (answer)
+                    {
+                        PublishMessage(listBox1, "Transfer starting...");
+                        SendFile();
+                    }
+                    else
+                    {
+                        PublishMessage(listBox1, "Transfer canceled by peer");
+                        ModifyButton(btnSendFile, true);
+                    }
+                    break;
+                case (char)Function.SIMP_CHAT_FILETRANS:
+                    System.Buffer.BlockCopy(msg, 0, fileTransBuffer, bytesInFileBuffer, message.getSize);
+                    bytesInFileBuffer += message.getSize;
+                    
+                    var recMessage = new Message("", Function.SIMP_CHAT_FILETRANSREC);
+                    var recEncrypted = DES.Encrypt(recMessage.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
+                    g_conn.Send(recEncrypted, 0, Message.SIZE, SocketFlags.None);
+                    break;
+                case (char)Function.SIMP_CHAT_FILETRANSREC:
+                    receivedFilePart = true;
+                    break;
+                case (char)Function.SIMP_CHAT_FILETRANSEND:
+                    if (fileTransBuffer != null)
+                    {
+                        File.WriteAllBytes(saveFilePath, fileTransBuffer);
+                        var endMessage = new Message("", Function.SIMP_CHAT_FILETRANSEND);
+                        var endEncrypted = DES.Encrypt(endMessage.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
+                        g_conn.Send(endEncrypted, 0, Message.SIZE, SocketFlags.None);
+                    }
+                    bytesInFileBuffer = 0;
+                    sendingFileBytes = null;
+                    fileTransBuffer = null;
+                    saveFilePath = null;
+                    PublishMessage(listBox1, "File Transfer Complete");
+                    ModifyButton(btnSendFile, true);
+                    break;
+            }
             buffer = new byte[Message.SIZE];
             if (realReadBytes != readBytes)
             {
@@ -211,13 +277,45 @@ namespace ChatHW
             }
         }
 
-        private void Send(string text)
+        private void Send(string text, Function func = Function.SIMP_CHAT_MSG)
         {
-            var message = new Message(text);
+            var message = new Message(text, func);
             var encBuffer = DES.Encrypt(message.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
 
             g_conn.Send(encBuffer, 0, Message.SIZE, SocketFlags.None);
-            PublishMessage(listBox1, text);
+
+            if(func == Function.SIMP_CHAT_MSG)
+                PublishMessage(listBox1, text);
+        }
+
+        private bool receivedFilePart;
+        private void SendFile()
+        {
+            (new Thread(() =>
+            {
+                double i = Math.Ceiling(sendingFileBytes.Length/236f);
+                int currentOffset = 0;
+                int remainder = sendingFileBytes.Length;
+                receivedFilePart = true;
+                for (int x = 0; x < i; x++)
+                {
+                    while (!receivedFilePart)
+                        Thread.Sleep(50);
+                    int sendNumber = remainder > 236 ? 236 : remainder;
+                    byte[] sending = new byte[sendNumber];
+                    System.Buffer.BlockCopy(sendingFileBytes, currentOffset, sending, 0, sendNumber);
+                    var message = new Message(sending);
+
+                    var encBuffer = DES.Encrypt(message.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
+                    g_conn.Send(encBuffer, 0, Message.SIZE, SocketFlags.None);
+                    currentOffset += 236;
+                    remainder -= 236;
+                    receivedFilePart = false;
+                }
+                var endMessage = new Message("", Function.SIMP_CHAT_FILETRANSEND);
+                var endEncrypted = DES.Encrypt(endMessage.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
+                g_conn.Send(endEncrypted, 0, Message.SIZE, SocketFlags.None);
+            })).Start();
         }
 
         private void SendKey(Function func)
@@ -240,16 +338,116 @@ namespace ChatHW
             listBox.Items.Add(mes);
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void ModifyButton(Button btn, bool value)
         {
-            Send(textBox1.Text);
-            textBox1.Text = "";
+            if (InvokeRequired)
+            {
+                BeginInvoke((ThreadStart)delegate { ModifyButton(btn, value); });
+                return;
+            }
+
+            btn.Enabled = value;
+        }
+
+        private string saveFilePath;
+        private void SaveFileDiag(string filext, int size)
+        {
+            ModifyButton(btnSendFile, false);
+            (new Thread(() =>
+            {
+                var dlg = new CFileSaveDlgThreadApartmentSafe();
+                if (!String.IsNullOrEmpty(filext))
+                {
+                    dlg = new CFileSaveDlgThreadApartmentSafe
+                    {
+                        Filter = filext + " file|*." + filext,
+                        DefaultExt = filext
+                    };
+                }
+
+                Point ptStartLocation = new Point(this.Location.X, this.Location.Y);
+
+                dlg.StartupLocation = ptStartLocation;
+
+                DialogResult result = dlg.ShowDialog();
+                if (result == DialogResult.OK) // Test result.
+                {
+                    saveFilePath = dlg.FilePath;
+                    try
+                    {
+                        fileTransBuffer = new byte[size];
+                        PublishMessage(listBox1, "Receiving file...");
+                        Send("true", Function.SIMP_CHAT_FILEINITANS);
+                    }
+                    catch (IOException)
+                    {
+                        MessageBox.Show("There was an error.");
+                        PublishMessage(listBox1, "Transfer canceled");
+                        Send("false", Function.SIMP_CHAT_FILEINITANS);
+                        ModifyButton(btnSendFile, true);
+                    }
+                }
+                else
+                {
+                    PublishMessage(listBox1, "Transfer canceled");
+                    Send("false", Function.SIMP_CHAT_FILEINITANS);
+                    ModifyButton(btnSendFile, true);
+                }
+            })).Start();
         }
 
         private void Form2_FormClosing(object sender, FormClosingEventArgs e)
         {
             g_conn.Disconnect(false);
             Form1.connections.Remove(g_conn.RemoteEndPoint.ToString());
+        }
+
+        private void btnSendMsg_Click(object sender, EventArgs e)
+        {
+            Send(textBox1.Text);
+            textBox1.Text = "";
+        }
+
+        private byte[] sendingFileBytes;
+        private void btnSendFile_Click(object sender, EventArgs e)
+        {
+            ModifyButton(btnSendFile, false);
+            (new Thread(() =>
+            {
+                int size = -1;
+                CFileOpenDlgThreadApartmentSafe dlg = new CFileOpenDlgThreadApartmentSafe();
+
+                Point ptStartLocation = new Point(this.Location.X, this.Location.Y);
+
+                dlg.StartupLocation = ptStartLocation;
+
+                DialogResult result = dlg.ShowDialog();
+                
+                if (result == DialogResult.OK) // Test result.
+                {
+                    string filePath = dlg.FilePath;
+                    string fileName = filePath.Split('\\').Last();
+                    string message = "";
+                    try
+                    {
+                        sendingFileBytes = File.ReadAllBytes(filePath);
+                        size = sendingFileBytes.Length;
+                        message = String.Format("{0},{1}", fileName, size);
+                    }
+                    catch (IOException)
+                    {
+                        MessageBox.Show("There was an error.");
+                        ModifyButton(btnSendFile, true);
+                        return;
+                    }
+                    PublishMessage(listBox1, "Waiting for answer...");
+                    Send(message, Function.SIMP_CHAT_FILEINIT);
+                }
+                else
+                {
+                    ModifyButton(btnSendFile, true);
+                }
+            })).Start();
         }
     }
 }

@@ -10,7 +10,12 @@ namespace ChatHW
     {
         SIMP_CHAT_MSG = 1,
         SIMP_INIT_COMM = 2,
-        SIMP_KEY_COMPUTED = 3
+        SIMP_KEY_COMPUTED = 3,
+        SIMP_CHAT_FILEINIT = 4,
+        SIMP_CHAT_FILEINITANS = 5,
+        SIMP_CHAT_FILETRANS = 6,
+        SIMP_CHAT_FILETRANSREC = 7,
+        SIMP_CHAT_FILETRANSEND = 8
     }
 
     class Message
@@ -40,31 +45,14 @@ namespace ChatHW
             get { return _function; }
         }
 
-        public Message(string message, Function func = Function.SIMP_CHAT_MSG)//Cambiar por ascii si los otros lo hacen por ascii.
+        public int getSize
         {
-            ReplaceBytes(_ascp, System.Text.Encoding.GetEncoding(28591).GetBytes("ASCP"));
+            get { return Convert.ToInt32(_size); }
+        }
 
-            byte[] intBytes = BitConverter.GetBytes(1);
-            if (BitConverter.IsLittleEndian)
-                Array.Reverse(intBytes);
-            ReplaceBytes(_version, intBytes);
-
-            _size = Convert.ToByte(message.Length);
-
-            intBytes = BitConverter.GetBytes((char)func);
-            ReplaceBytes(_function, intBytes);
-
-            intBytes = BitConverter.GetBytes(0);
-            if (BitConverter.IsLittleEndian)
-                Array.Reverse(intBytes);
-            ReplaceBytes(_state, intBytes);
-
-            intBytes = BitConverter.GetBytes(0);
-            if (BitConverter.IsLittleEndian)
-                Array.Reverse(intBytes);
-            ReplaceBytes(_id_session, intBytes);
-
-            ReplaceBytes(_data, System.Text.Encoding.GetEncoding(28591).GetBytes(message), false);
+        public Message(string message, Function func)//Cambiar por ascii si los otros lo hacen por ascii.
+        {
+            InitializeMessage(System.Text.Encoding.GetEncoding(28591).GetBytes(message), func);
 
             int offset = 0;
             FillBytesWith(_ascp, offset);
@@ -81,6 +69,33 @@ namespace ChatHW
             offset = offset + _id_session.Length;
             FillBytesWith(_data, offset);
             offset = offset + _data.Length;
+        }
+
+        private void InitializeMessage(byte[] bytes, Function func)
+        {
+            ReplaceBytes(_ascp, System.Text.Encoding.GetEncoding(28591).GetBytes("ASCP"));
+
+            byte[] intBytes = BitConverter.GetBytes(1);
+            if (BitConverter.IsLittleEndian)
+                Array.Reverse(intBytes);
+            ReplaceBytes(_version, intBytes);
+
+            _size = Convert.ToByte(bytes.Length);
+
+            intBytes = BitConverter.GetBytes((char)func);
+            ReplaceBytes(_function, intBytes);
+
+            intBytes = BitConverter.GetBytes(0);
+            if (BitConverter.IsLittleEndian)
+                Array.Reverse(intBytes);
+            ReplaceBytes(_state, intBytes);
+
+            intBytes = BitConverter.GetBytes(0);
+            if (BitConverter.IsLittleEndian)
+                Array.Reverse(intBytes);
+            ReplaceBytes(_id_session, intBytes);
+
+            ReplaceBytes(_data, bytes, false);
         }
 
         private void ReplaceBytes(byte[] left, byte[] right, bool useDiff = true)
@@ -110,28 +125,48 @@ namespace ChatHW
             }
         }
 
-        public Message(byte[] complete)
+        public Message(byte[] complete, Function func = Function.SIMP_CHAT_FILETRANS)
         {
-            if(complete.Length == 256)
+            if (complete.Length == 256)
+            {
                 completeBytes = complete;
-            else
-                throw new FormatException("Message format is not correct");
 
-            int offset = 0;
-            GetBytesFromComplete(_ascp, offset);
-            offset = offset + _ascp.Length;
-            GetBytesFromComplete(_version, offset);
-            offset = offset + _version.Length;
-            _size = completeBytes[offset];
-            offset++;
-            GetBytesFromComplete(getFunction, offset);
-            offset = offset + getFunction.Length;
-            GetBytesFromComplete(_state, offset);
-            offset = offset + _state.Length;
-            GetBytesFromComplete(_id_session, offset);
-            offset = offset + _id_session.Length;
-            GetBytesFromComplete(_data, offset);
-            offset = offset + _data.Length;
+                int offset = 0;
+                GetBytesFromComplete(_ascp, offset);
+                offset = offset + _ascp.Length;
+                GetBytesFromComplete(_version, offset);
+                offset = offset + _version.Length;
+                _size = completeBytes[offset];
+                offset++;
+                GetBytesFromComplete(getFunction, offset);
+                offset = offset + getFunction.Length;
+                GetBytesFromComplete(_state, offset);
+                offset = offset + _state.Length;
+                GetBytesFromComplete(_id_session, offset);
+                offset = offset + _id_session.Length;
+                GetBytesFromComplete(_data, offset);
+                offset = offset + _data.Length;
+            }
+            else
+            {
+                InitializeMessage(complete, func);
+
+                int offset = 0;
+                FillBytesWith(_ascp, offset);
+                offset = offset + _ascp.Length;
+                FillBytesWith(_version, offset);
+                offset = offset + _version.Length;
+                completeBytes[offset] = _size;
+                offset++;
+                FillBytesWith(_function, offset);
+                offset = offset + _function.Length;
+                FillBytesWith(_state, offset);
+                offset = offset + _state.Length;
+                FillBytesWith(_id_session, offset);
+                offset = offset + _id_session.Length;
+                FillBytesWith(_data, offset);
+                offset = offset + _data.Length;
+            }
         }
     }
 }
