@@ -15,7 +15,8 @@ namespace ChatHW
         SIMP_CHAT_FILEINITANS = 5,
         SIMP_CHAT_FILETRANS = 6,
         SIMP_CHAT_FILETRANSREC = 7,
-        SIMP_CHAT_FILETRANSEND = 8
+        SIMP_CHAT_FILETRANSNOTREC = 8,
+        SIMP_CHAT_FILETRANSEND = 9
     }
 
     class Message

@@ -61,7 +61,7 @@ namespace ChatHW
         private byte[] fileTransBuffer;
         private int bytesInBuffer = 0, bytesInFileBuffer = 0;
         private byte[] buffer = new byte[Message.SIZE];
-        private int receivedCount = 0;
+        private int receivedCount = 0, receivedFileCount = 0;
         private void Receive(IAsyncResult ar)
         {
             Socket conn = (Socket)ar.AsyncState;
@@ -175,15 +175,26 @@ namespace ChatHW
                     }
                     break;
                 case (char)Function.SIMP_CHAT_FILETRANS:
+                    receivedFileCount++;
                     System.Buffer.BlockCopy(msg, 0, fileTransBuffer, bytesInFileBuffer, message.getSize);
                     bytesInFileBuffer += message.getSize;
-                    
-                    var recMessage = new Message("", Function.SIMP_CHAT_FILETRANSREC);
+
+                    var recMessage = new Message(receivedFileCount.ToString(), Function.SIMP_CHAT_FILETRANSREC);
                     var recEncrypted = DES.Encrypt(recMessage.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
                     g_conn.Send(recEncrypted, 0, Message.SIZE, SocketFlags.None);
                     break;
                 case (char)Function.SIMP_CHAT_FILETRANSREC:
+                    msgString = Encoding.GetEncoding(28591).GetString(msg);
+                    var peerReceivedCount = int.Parse(msgString);
                     receivedFilePart = true;
+                    sentFileCount = peerReceivedCount;
+                    break;
+                case (char)Function.SIMP_CHAT_FILETRANSNOTREC:
+                    msgString = Encoding.GetEncoding(28591).GetString(msg);
+                    var peerCurrentIteration = int.Parse(msgString);
+                    var notRecMessage = new Message(receivedFileCount.ToString(), Function.SIMP_CHAT_FILETRANSREC);
+                    var notRecEncrypted = DES.Encrypt(notRecMessage.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
+                    g_conn.Send(notRecEncrypted, 0, Message.SIZE, SocketFlags.None);
                     break;
                 case (char)Function.SIMP_CHAT_FILETRANSEND:
                     if (fileTransBuffer != null)
@@ -193,6 +204,7 @@ namespace ChatHW
                         var endEncrypted = DES.Encrypt(endMessage.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
                         g_conn.Send(endEncrypted, 0, Message.SIZE, SocketFlags.None);
                     }
+                    receivedFileCount = 0;
                     bytesInFileBuffer = 0;
                     sendingFileBytes = null;
                     fileTransBuffer = null;
@@ -288,6 +300,7 @@ namespace ChatHW
                 PublishMessage(listBox1, text);
         }
 
+        private int sentFileCount;
         private bool receivedFilePart;
         private void SendFile()
         {
@@ -297,19 +310,31 @@ namespace ChatHW
                 int currentOffset = 0;
                 int remainder = sendingFileBytes.Length;
                 receivedFilePart = true;
-                for (int x = 0; x < i; x++)
+                for (sentFileCount = 0; sentFileCount < i;)
                 {
+                    int timeout = 0;
                     while (!receivedFilePart)
+                    {
                         Thread.Sleep(50);
+                        if (timeout > 500)
+                        {
+                            var tOMessage = new Message(sentFileCount.ToString(), Function.SIMP_CHAT_FILETRANSNOTREC);
+                            var tOencBuffer = DES.Encrypt(tOMessage.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
+                            g_conn.Send(tOencBuffer, 0, Message.SIZE, SocketFlags.None);
+                            timeout = 0;
+                        }
+                        timeout++;
+                    }
+                    if (sentFileCount >= i) break;
+                    currentOffset = 236 * sentFileCount;
+                    remainder = sendingFileBytes.Length - (236 * sentFileCount);
                     int sendNumber = remainder > 236 ? 236 : remainder;
                     byte[] sending = new byte[sendNumber];
                     System.Buffer.BlockCopy(sendingFileBytes, currentOffset, sending, 0, sendNumber);
-                    var message = new Message(sending);
 
+                    var message = new Message(sending);
                     var encBuffer = DES.Encrypt(message.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
                     g_conn.Send(encBuffer, 0, Message.SIZE, SocketFlags.None);
-                    currentOffset += 236;
-                    remainder -= 236;
                     receivedFilePart = false;
                 }
                 var endMessage = new Message("", Function.SIMP_CHAT_FILETRANSEND);
