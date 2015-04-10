@@ -176,6 +176,8 @@ namespace ChatHW
                     break;
                 case (char)Function.SIMP_CHAT_FILETRANS:
                     receivedFileCount++;
+                    var percentage = bytesInFileBuffer*100f/fileTransBuffer.Length;
+                    ModifyLabel(lblPercentage, percentage);
                     System.Buffer.BlockCopy(msg, 0, fileTransBuffer, bytesInFileBuffer, message.getSize);
                     bytesInFileBuffer += message.getSize;
 
@@ -211,6 +213,7 @@ namespace ChatHW
                     saveFilePath = null;
                     PublishMessage(listBox1, "File Transfer Complete");
                     ModifyButton(btnSendFile, true);
+                    ModifyLabel(lblPercentage, -1);
                     break;
             }
             buffer = new byte[Message.SIZE];
@@ -326,6 +329,8 @@ namespace ChatHW
                         timeout++;
                     }
                     if (sentFileCount >= i) break;
+                    var percentage = sentFileCount*100f/i;
+                    ModifyLabel(lblPercentage, percentage);
                     currentOffset = 236 * sentFileCount;
                     remainder = sendingFileBytes.Length - (236 * sentFileCount);
                     int sendNumber = remainder > 236 ? 236 : remainder;
@@ -340,6 +345,7 @@ namespace ChatHW
                 var endMessage = new Message("", Function.SIMP_CHAT_FILETRANSEND);
                 var endEncrypted = DES.Encrypt(endMessage.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
                 g_conn.Send(endEncrypted, 0, Message.SIZE, SocketFlags.None);
+                ModifyLabel(lblPercentage, -1);
             })).Start();
         }
 
@@ -363,7 +369,7 @@ namespace ChatHW
             listBox.Items.Add(mes);
         }
 
-        private void ModifyButton(Button btn, bool value)
+        private void ModifyButton(Control btn, bool value)
         {
             if (InvokeRequired)
             {
@@ -372,6 +378,19 @@ namespace ChatHW
             }
 
             btn.Enabled = value;
+        }
+
+        private void ModifyLabel(Control lbl, double value)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke((ThreadStart)delegate { ModifyLabel(lbl, value); });
+                return;
+            }
+
+            lbl.Text = String.Format("{0:0.0#}%", value);
+            if (value == -1)
+                lbl.Text = "";
         }
 
         private string saveFilePath;
