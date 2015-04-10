@@ -315,7 +315,7 @@ namespace ChatHW
                     int timeout = 0;
                     while (!receivedFilePart)
                     {
-                        Thread.Sleep(50);
+                        Thread.Sleep(5);
                         if (timeout > 500)
                         {
                             var tOMessage = new Message(sentFileCount.ToString(), Function.SIMP_CHAT_FILETRANSNOTREC);
