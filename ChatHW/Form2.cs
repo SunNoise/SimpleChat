@@ -91,12 +91,12 @@ namespace ChatHW
                     });
                 return;
             }
-            if (bytesInBuffer + readBytes > 255)
-                readBytes = 256 - bytesInBuffer;
+            if (bytesInBuffer + readBytes > (Message.SIZE - 1))
+                readBytes = Message.SIZE - bytesInBuffer;
             System.Buffer.BlockCopy(g_bmsg, 0, buffer, bytesInBuffer, readBytes);
 
             bytesInBuffer += readBytes;
-            if (bytesInBuffer < 256)
+            if (bytesInBuffer < Message.SIZE)
             {
                 g_bmsg = new byte[Message.SIZE];
                 g_conn.BeginReceive(g_bmsg, 0, g_bmsg.Length, SocketFlags.None, new AsyncCallback(Receive), g_conn);
@@ -115,6 +115,7 @@ namespace ChatHW
             {
                 message = encBuffer;
             }
+            var mac = message.getMac;
             var msg = message.getData;
             var func = BitConverter.ToChar(message.getFunction, 0);
             string msgString = "";
@@ -141,10 +142,15 @@ namespace ChatHW
             switch (func)
             {
                 case (char)Function.SIMP_CHAT_MSG:
-                    msgString = Encoding.GetEncoding(28591).GetString(msg);
-                    msgString = msgString.Replace("\0", "");
-                    if (!String.IsNullOrEmpty(msgString))
-                    PublishMessage(listBox1, msgString);
+                    if (!mac.SequenceEqual(SHA1.Compute(message.CompleteNoMacBytes)))
+                        MessageBox.Show(@"MAC is wrong");
+                    else
+                    {
+                        msgString = Encoding.GetEncoding(28591).GetString(msg);
+                        msgString = msgString.Replace("\0", "");
+                        if (!String.IsNullOrEmpty(msgString))
+                            PublishMessage(listBox1, msgString);
+                    }
                     break;
                 case (char)Function.SIMP_CHAT_FILEINIT:
                     msgString = Encoding.GetEncoding(28591).GetString(msg);
@@ -292,15 +298,28 @@ namespace ChatHW
             }
         }
 
-        private void Send(string text, Function func = Function.SIMP_CHAT_MSG)
+        private void SendMessage(string text, Function func = Function.SIMP_CHAT_MSG)
         {
-            var message = new Message(text, func);
-            var encBuffer = DES.Encrypt(message.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
+            var dataChunks = ChunksUpto(text, Message.DATASIZE);
 
-            g_conn.Send(encBuffer, 0, Message.SIZE, SocketFlags.None);
+            foreach (var data in dataChunks)
+            {
+                var message = new Message(data, func);
+                if (checkBox1.Checked)
+                    message = new Message(data, func, true);
+                var encBuffer = DES.Encrypt(message.CompleteBytes, Encoding.GetEncoding(28591).GetBytes(dh.key));
 
-            if(func == Function.SIMP_CHAT_MSG)
-                PublishMessage(listBox1, text);
+                g_conn.Send(encBuffer, 0, Message.SIZE, SocketFlags.None);
+
+                if (func == Function.SIMP_CHAT_MSG)
+                    PublishMessage(listBox1, data);
+            }
+        }
+
+        static IEnumerable<string> ChunksUpto(string str, int maxChunkSize)
+        {
+            for (int i = 0; i < str.Length; i += maxChunkSize)
+                yield return str.Substring(i, Math.Min(maxChunkSize, str.Length - i));
         }
 
         private int sentFileCount;
@@ -309,7 +328,7 @@ namespace ChatHW
         {
             (new Thread(() =>
             {
-                double i = Math.Ceiling(sendingFileBytes.Length/236f);
+                double i = Math.Ceiling((float)sendingFileBytes.Length/Message.DATASIZE);
                 int currentOffset = 0;
                 int remainder = sendingFileBytes.Length;
                 receivedFilePart = true;
@@ -331,9 +350,9 @@ namespace ChatHW
                     if (sentFileCount >= i) break;
                     var percentage = sentFileCount*100f/i;
                     ModifyLabel(lblPercentage, percentage);
-                    currentOffset = 236 * sentFileCount;
-                    remainder = sendingFileBytes.Length - (236 * sentFileCount);
-                    int sendNumber = remainder > 236 ? 236 : remainder;
+                    currentOffset = Message.DATASIZE * sentFileCount;
+                    remainder = sendingFileBytes.Length - (Message.DATASIZE * sentFileCount);
+                    int sendNumber = remainder > Message.DATASIZE ? Message.DATASIZE : remainder;
                     byte[] sending = new byte[sendNumber];
                     System.Buffer.BlockCopy(sendingFileBytes, currentOffset, sending, 0, sendNumber);
 
@@ -421,20 +440,20 @@ namespace ChatHW
                     {
                         fileTransBuffer = new byte[size];
                         PublishMessage(listBox1, "Receiving file...");
-                        Send("true", Function.SIMP_CHAT_FILEINITANS);
+                        SendMessage("true", Function.SIMP_CHAT_FILEINITANS);
                     }
                     catch (IOException)
                     {
                         MessageBox.Show("There was an error.");
                         PublishMessage(listBox1, "Transfer canceled");
-                        Send("false", Function.SIMP_CHAT_FILEINITANS);
+                        SendMessage("false", Function.SIMP_CHAT_FILEINITANS);
                         ModifyButton(btnSendFile, true);
                     }
                 }
                 else
                 {
                     PublishMessage(listBox1, "Transfer canceled");
-                    Send("false", Function.SIMP_CHAT_FILEINITANS);
+                    SendMessage("false", Function.SIMP_CHAT_FILEINITANS);
                     ModifyButton(btnSendFile, true);
                 }
             })).Start();
@@ -448,7 +467,7 @@ namespace ChatHW
 
         private void btnSendMsg_Click(object sender, EventArgs e)
         {
-            Send(textBox1.Text);
+            SendMessage(textBox1.Text);
             textBox1.Text = "";
         }
 
@@ -485,7 +504,7 @@ namespace ChatHW
                         return;
                     }
                     PublishMessage(listBox1, "Waiting for answer...");
-                    Send(message, Function.SIMP_CHAT_FILEINIT);
+                    SendMessage(message, Function.SIMP_CHAT_FILEINIT);
                 }
                 else
                 {

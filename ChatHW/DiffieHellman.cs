@@ -5,12 +5,12 @@ using System.Text;
 
 namespace ChatHW
 {
-    class DiffieHellman
+    internal class DiffieHellman
     {
         public long q = 2426697107, a = 17123207;
         private long x;
         internal string key;
-        public DiffieHellman(Random rnd, long y, out string publicKey)
+        internal DiffieHellman(Random rnd, long y, out string publicKey)
         {
             x = LongRandom(q, rnd);
             publicKey = fast_exp(a, x, q).ToString();
@@ -18,13 +18,13 @@ namespace ChatHW
             key = fast_exp(y, x, q).ToString().PadLeft(8, '0').Substring(0, 8);
         }
 
-        public DiffieHellman(Random rnd, out string publicKey)
+        internal DiffieHellman(Random rnd, out string publicKey)
         {
             x = LongRandom(q, rnd);
             publicKey = fast_exp(a, x, q).ToString();
         }
 
-        public DiffieHellman(Random rnd, long q, long a, long y, out string publicKey)
+        internal DiffieHellman(Random rnd, long q, long a, long y, out string publicKey)
         {
             x = LongRandom(q, rnd);
             publicKey = fast_exp(a, x, q).ToString();
@@ -32,7 +32,7 @@ namespace ChatHW
             key = fast_exp(y, x, q).ToString().PadLeft(8, '0').Substring(0, 8);
         }
 
-        public DiffieHellman(Random rnd, long q, long a, out string publicKey)
+        internal DiffieHellman(Random rnd, long q, long a, out string publicKey)
         {
             x = LongRandom(q, rnd);
             publicKey = fast_exp(a, x, q).ToString();
@@ -66,7 +66,7 @@ namespace ChatHW
             }
         }
 
-        public void Update(long y)
+        internal void Update(long y)
         {
             key = fast_exp(y, x, q).ToString().PadLeft(8, '0').Substring(0, 8);
         }

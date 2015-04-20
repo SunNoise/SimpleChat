@@ -22,18 +22,26 @@ namespace ChatHW
     class Message
     {
         public const int SIZE = 256;
+        public const int DATASIZE = 216;
         byte[] _ascp = new byte[4];
         byte[] _version = new byte[5];
         byte _size = new byte();
         byte[] _function = new byte[2];
         byte[] _state = new byte[4];
         byte[] _id_session = new byte[4];
-        byte[] _data = new byte[236];
+        byte[] _data = new byte[DATASIZE];
+        byte[] _mac = new byte[SHA1.SIZE];
+        byte[] completeNoMacBytes = new byte[SIZE - SHA1.SIZE];
         byte[] completeBytes = new byte[SIZE];
 
         public byte[] CompleteBytes
         {
             get { return completeBytes; }
+        }
+
+        public byte[] CompleteNoMacBytes
+        {
+            get { return completeNoMacBytes; }
         }
 
         public byte[] getData
@@ -46,12 +54,17 @@ namespace ChatHW
             get { return _function; }
         }
 
+        internal byte[] getMac
+        {
+            get { return _mac; }
+        }
+
         public int getSize
         {
             get { return Convert.ToInt32(_size); }
         }
 
-        public Message(string message, Function func)//Cambiar por ascii si los otros lo hacen por ascii.
+        public Message(string message, Function func, bool fakeMac = false)
         {
             InitializeMessage(System.Text.Encoding.GetEncoding(28591).GetBytes(message), func);
 
@@ -70,9 +83,10 @@ namespace ChatHW
             offset = offset + _id_session.Length;
             FillBytesWith(_data, offset);
             offset = offset + _data.Length;
+            FillBytesWith(fakeMac ? new byte[20] : _mac, offset);
         }
 
-        private void InitializeMessage(byte[] bytes, Function func)
+        private void InitializeMessage(byte[] bytes, Function func)//Falta la MAC
         {
             ReplaceBytes(_ascp, System.Text.Encoding.GetEncoding(28591).GetBytes("ASCP"));
 
@@ -97,16 +111,19 @@ namespace ChatHW
             ReplaceBytes(_id_session, intBytes);
 
             ReplaceBytes(_data, bytes, false);
+
+            System.Buffer.BlockCopy(completeBytes, 0, completeNoMacBytes, 0, completeNoMacBytes.Length);
+            ReplaceBytes(_mac, SHA1.Compute(completeNoMacBytes));
         }
 
-        private void ReplaceBytes(byte[] left, byte[] right, bool useDiff = true)
+        private void ReplaceBytes(byte[] dest, byte[] src, bool useDiff = true)
         {
             int diff = 0;
             if (useDiff)
-                diff = left.Length - right.Length;
-            for (int i = 0; i < right.Length; i++)
+                diff = dest.Length - src.Length;
+            for (int i = 0; i < src.Length; i++)
             {
-                left[i + diff] = right[i];
+                dest[i + diff] = src[i];
             }
         }
 
@@ -147,6 +164,7 @@ namespace ChatHW
                 offset = offset + _id_session.Length;
                 GetBytesFromComplete(_data, offset);
                 offset = offset + _data.Length;
+                GetBytesFromComplete(_mac, offset);
             }
             else
             {
@@ -167,6 +185,7 @@ namespace ChatHW
                 offset = offset + _id_session.Length;
                 FillBytesWith(_data, offset);
                 offset = offset + _data.Length;
+                FillBytesWith(_mac, offset);
             }
         }
     }
