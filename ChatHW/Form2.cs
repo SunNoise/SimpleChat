@@ -142,7 +142,9 @@ namespace ChatHW
             switch (func)
             {
                 case (char)Function.SIMP_CHAT_MSG:
-                    if (!mac.SequenceEqual(SHA1.Compute(message.CompleteNoMacBytes)))
+                    var macTemp = SHA1.Compute(message.CompleteNoMacBytes);
+                    
+                    if (!mac.SequenceEqual(macTemp))
                         MessageBox.Show(@"MAC is wrong");
                     else
                     {
@@ -371,7 +373,7 @@ namespace ChatHW
         private void SendKey(Function func)
         {
             var text = String.Format("q={2},a={1},y={0}", ourPublicKey, dh.a, dh.q);
-            var message = new Message(text, func);
+            var message = new Message(text, func, true);
 
             g_conn.Send(message.CompleteBytes, 0, Message.SIZE, SocketFlags.None);
             PublishMessage(listBox1, "Key sent.");

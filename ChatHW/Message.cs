@@ -66,27 +66,10 @@ namespace ChatHW
 
         public Message(string message, Function func, bool fakeMac = false)
         {
-            InitializeMessage(System.Text.Encoding.GetEncoding(28591).GetBytes(message), func);
-
-            int offset = 0;
-            FillBytesWith(_ascp, offset);
-            offset = offset + _ascp.Length;
-            FillBytesWith(_version, offset);
-            offset = offset + _version.Length;
-            completeBytes[offset] = _size;
-            offset++;
-            FillBytesWith(_function, offset);
-            offset = offset + _function.Length;
-            FillBytesWith(_state, offset);
-            offset = offset + _state.Length;
-            FillBytesWith(_id_session, offset);
-            offset = offset + _id_session.Length;
-            FillBytesWith(_data, offset);
-            offset = offset + _data.Length;
-            FillBytesWith(fakeMac ? new byte[20] : _mac, offset);
+            InitializeMessage(System.Text.Encoding.GetEncoding(28591).GetBytes(message), func, fakeMac);
         }
 
-        private void InitializeMessage(byte[] bytes, Function func)//Falta la MAC
+        private void InitializeMessage(byte[] bytes, Function func, bool fakeMac)
         {
             ReplaceBytes(_ascp, System.Text.Encoding.GetEncoding(28591).GetBytes("ASCP"));
 
@@ -112,8 +95,12 @@ namespace ChatHW
 
             ReplaceBytes(_data, bytes, false);
 
+            var macOffset = FillCompleteMessage();
+
             System.Buffer.BlockCopy(completeBytes, 0, completeNoMacBytes, 0, completeNoMacBytes.Length);
             ReplaceBytes(_mac, SHA1.Compute(completeNoMacBytes));
+
+            FillBytesWith(fakeMac ? new byte[SHA1.SIZE] : _mac, macOffset);
         }
 
         private void ReplaceBytes(byte[] dest, byte[] src, bool useDiff = true)
@@ -125,6 +112,26 @@ namespace ChatHW
             {
                 dest[i + diff] = src[i];
             }
+        }
+
+        private int FillCompleteMessage()
+        {
+            int offset = 0;
+            FillBytesWith(_ascp, offset);
+            offset = offset + _ascp.Length;
+            FillBytesWith(_version, offset);
+            offset = offset + _version.Length;
+            completeBytes[offset] = _size;
+            offset++;
+            FillBytesWith(_function, offset);
+            offset = offset + _function.Length;
+            FillBytesWith(_state, offset);
+            offset = offset + _state.Length;
+            FillBytesWith(_id_session, offset);
+            offset = offset + _id_session.Length;
+            FillBytesWith(_data, offset);
+            offset = offset + _data.Length;
+            return offset;
         }
 
         private void FillBytesWith(byte[] arr,int offset)
@@ -165,27 +172,12 @@ namespace ChatHW
                 GetBytesFromComplete(_data, offset);
                 offset = offset + _data.Length;
                 GetBytesFromComplete(_mac, offset);
+
+                System.Buffer.BlockCopy(completeBytes, 0, completeNoMacBytes, 0, completeNoMacBytes.Length);
             }
             else
             {
-                InitializeMessage(complete, func);
-
-                int offset = 0;
-                FillBytesWith(_ascp, offset);
-                offset = offset + _ascp.Length;
-                FillBytesWith(_version, offset);
-                offset = offset + _version.Length;
-                completeBytes[offset] = _size;
-                offset++;
-                FillBytesWith(_function, offset);
-                offset = offset + _function.Length;
-                FillBytesWith(_state, offset);
-                offset = offset + _state.Length;
-                FillBytesWith(_id_session, offset);
-                offset = offset + _id_session.Length;
-                FillBytesWith(_data, offset);
-                offset = offset + _data.Length;
-                FillBytesWith(_mac, offset);
+                InitializeMessage(complete, func, false);
             }
         }
     }
