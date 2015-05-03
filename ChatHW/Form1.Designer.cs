@@ -28,34 +28,109 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.button1 = new System.Windows.Forms.Button();
-            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.btnLocate = new System.Windows.Forms.Button();
+            this.txtLocate = new System.Windows.Forms.TextBox();
+            this.btnConnect = new System.Windows.Forms.Button();
+            this.txtConnect = new System.Windows.Forms.TextBox();
+            this.label1 = new System.Windows.Forms.Label();
+            this.label2 = new System.Windows.Forms.Label();
+            this.btnDisconnect = new System.Windows.Forms.Button();
+            this.txtPass = new System.Windows.Forms.TextBox();
+            this.label3 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
-            // button1
+            // btnLocate
             // 
-            this.button1.Location = new System.Drawing.Point(197, 12);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(75, 23);
-            this.button1.TabIndex = 0;
-            this.button1.Text = "Connect";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.btnLocate.Location = new System.Drawing.Point(197, 70);
+            this.btnLocate.Name = "btnLocate";
+            this.btnLocate.Size = new System.Drawing.Size(75, 23);
+            this.btnLocate.TabIndex = 0;
+            this.btnLocate.Text = "Locate";
+            this.btnLocate.UseVisualStyleBackColor = true;
+            this.btnLocate.Click += new System.EventHandler(this.btnLocate_Click);
             // 
-            // textBox1
+            // txtLocate
             // 
-            this.textBox1.Location = new System.Drawing.Point(12, 12);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(179, 20);
-            this.textBox1.TabIndex = 1;
+            this.txtLocate.Location = new System.Drawing.Point(71, 70);
+            this.txtLocate.Name = "txtLocate";
+            this.txtLocate.Size = new System.Drawing.Size(120, 20);
+            this.txtLocate.TabIndex = 1;
+            // 
+            // btnConnect
+            // 
+            this.btnConnect.Location = new System.Drawing.Point(197, 12);
+            this.btnConnect.Name = "btnConnect";
+            this.btnConnect.Size = new System.Drawing.Size(75, 23);
+            this.btnConnect.TabIndex = 2;
+            this.btnConnect.Text = "Connect";
+            this.btnConnect.UseVisualStyleBackColor = true;
+            this.btnConnect.Click += new System.EventHandler(this.btnConnect_Click);
+            // 
+            // txtConnect
+            // 
+            this.txtConnect.Location = new System.Drawing.Point(71, 12);
+            this.txtConnect.Name = "txtConnect";
+            this.txtConnect.Size = new System.Drawing.Size(120, 20);
+            this.txtConnect.TabIndex = 3;
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(12, 15);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(29, 13);
+            this.label1.TabIndex = 4;
+            this.label1.Text = "User";
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(12, 73);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(44, 13);
+            this.label2.TabIndex = 5;
+            this.label2.Text = "Remote";
+            // 
+            // btnDisconnect
+            // 
+            this.btnDisconnect.Location = new System.Drawing.Point(12, 99);
+            this.btnDisconnect.Name = "btnDisconnect";
+            this.btnDisconnect.Size = new System.Drawing.Size(260, 23);
+            this.btnDisconnect.TabIndex = 6;
+            this.btnDisconnect.Text = "Disconnect and Exit";
+            this.btnDisconnect.UseVisualStyleBackColor = true;
+            this.btnDisconnect.Click += new System.EventHandler(this.btnDisconnect_Click);
+            // 
+            // txtPass
+            // 
+            this.txtPass.Location = new System.Drawing.Point(71, 38);
+            this.txtPass.Name = "txtPass";
+            this.txtPass.Size = new System.Drawing.Size(120, 20);
+            this.txtPass.TabIndex = 7;
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(12, 41);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(53, 13);
+            this.label3.TabIndex = 8;
+            this.label3.Text = "Password";
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(284, 41);
-            this.Controls.Add(this.textBox1);
-            this.Controls.Add(this.button1);
+            this.ClientSize = new System.Drawing.Size(284, 134);
+            this.Controls.Add(this.label3);
+            this.Controls.Add(this.txtPass);
+            this.Controls.Add(this.btnDisconnect);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.label1);
+            this.Controls.Add(this.txtConnect);
+            this.Controls.Add(this.btnConnect);
+            this.Controls.Add(this.txtLocate);
+            this.Controls.Add(this.btnLocate);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.Name = "Form1";
             this.Text = "Form1";
@@ -66,8 +141,15 @@
 
         #endregion
 
-        private System.Windows.Forms.Button button1;
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.Button btnLocate;
+        private System.Windows.Forms.TextBox txtLocate;
+        private System.Windows.Forms.Button btnConnect;
+        private System.Windows.Forms.TextBox txtConnect;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Button btnDisconnect;
+        private System.Windows.Forms.TextBox txtPass;
+        private System.Windows.Forms.Label label3;
     }
 }
 
