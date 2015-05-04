@@ -73,22 +73,33 @@ namespace ChatHW
             }
             catch (Exception) //connection has been lost
             {
-                if (this.IsHandleCreated)
-                    this.Invoke((MethodInvoker)delegate
+                try
+                {
+                    this.Invoke((MethodInvoker) delegate
                     {
                         this.Close();
                     });
+                }
+                catch (ObjectDisposedException)
+                {
+
+                }
                 return;
             }
             int realReadBytes = readBytes;
             if (readBytes == 0)
             {
-                Thread.Sleep(50);
-                if (this.IsHandleCreated)
-                    this.Invoke((MethodInvoker)delegate
+                try
+                {
+                    this.Invoke((MethodInvoker) delegate
                     {
                         this.Close();
                     });
+                }
+                catch (ObjectDisposedException)
+                {
+                    
+                }
                 return;
             }
             if (bytesInBuffer + readBytes > (Message.SIZE - 1))

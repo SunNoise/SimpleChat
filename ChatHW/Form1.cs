@@ -17,6 +17,7 @@ namespace ChatHW
     public partial class Form1 : Form
     {
         private const string SERVICE = "https://web111.secure-secure.co.uk/maryayi.com/messenger_service/request_service.php/request_service.php?";
+        private const string PASS = "test";
 
         private Socket g_server_conn;
         public static List<string> connections;
@@ -92,9 +93,8 @@ namespace ChatHW
             try
             {
                 var user = txtConnect.Text;
-                var pass = txtPass.Text;
                 var nonce = rnd.Next();
-                var hash = SHA1.Compute(Encoding.ASCII.GetBytes(user + pass));
+                var hash = SHA1.Compute(Encoding.ASCII.GetBytes(PASS + nonce));
                 var hashStr = string.Concat(hash.Select(x => x.ToString("x2")));
                 var searchFor = txtLocate.Text;
                 var connection = SERVICE + "service=LOCATE" + "&" +
@@ -114,7 +114,7 @@ namespace ChatHW
                 }
 
 
-                var connectTo = result.Split('/'); //fix this
+                var connectTo = result.Split('/')[1].Split(':'); //fix this
                 var remote_ep = new IPEndPoint(IPAddress.Parse(connectTo[0]), int.Parse(connectTo[1]));
 
                 if (connections.Contains(remote_ep.ToString())) return;
@@ -133,9 +133,8 @@ namespace ChatHW
             try
             {
                 var user = txtConnect.Text;
-                var pass = txtPass.Text;
                 var nonce = rnd.Next();
-                var hash = SHA1.Compute(Encoding.ASCII.GetBytes(user + pass));
+                var hash = SHA1.Compute(Encoding.ASCII.GetBytes(PASS + nonce));
                 var hashStr = string.Concat(hash.Select(x => x.ToString("x2")));
                 var localip = GetLocalIPv4(NetworkInterfaceType.Wireless80211);
                 var connection = SERVICE + "service=CONNECT" + "&" +
@@ -153,13 +152,12 @@ namespace ChatHW
                     if (result.StartsWith("\nERROR"))
                         throw new Exception(result);
                 }
+                MessageBox.Show(@"Connection Successful");
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
             }
-
-            MessageBox.Show(@"Connection Successful");
         }
 
         public string GetLocalIPv4(NetworkInterfaceType _type)
@@ -186,9 +184,8 @@ namespace ChatHW
             try
             {
                 var user = txtConnect.Text;
-                var pass = txtPass.Text;
                 var nonce = rnd.Next();
-                var hash = SHA1.Compute(Encoding.ASCII.GetBytes(user + pass));
+                var hash = SHA1.Compute(Encoding.ASCII.GetBytes(PASS + nonce));
                 var hashStr = string.Concat(hash.Select(x => x.ToString("x2")));
                 var connection = SERVICE + "service=DISCONNECT" + "&" +
                                  "user=" + user + "&" +
@@ -203,15 +200,13 @@ namespace ChatHW
                     if (result.StartsWith("\nERROR"))
                         throw new Exception(result);
                 }
-
+                MessageBox.Show(@"Disconnected Successfully");
                 Environment.Exit(0);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
             }
-
-            MessageBox.Show(@"Disconnected Successfully");
         }
 
     }

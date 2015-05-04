@@ -35,13 +35,11 @@
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.btnDisconnect = new System.Windows.Forms.Button();
-            this.txtPass = new System.Windows.Forms.TextBox();
-            this.label3 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // btnLocate
             // 
-            this.btnLocate.Location = new System.Drawing.Point(197, 70);
+            this.btnLocate.Location = new System.Drawing.Point(197, 41);
             this.btnLocate.Name = "btnLocate";
             this.btnLocate.Size = new System.Drawing.Size(75, 23);
             this.btnLocate.TabIndex = 0;
@@ -51,7 +49,7 @@
             // 
             // txtLocate
             // 
-            this.txtLocate.Location = new System.Drawing.Point(71, 70);
+            this.txtLocate.Location = new System.Drawing.Point(71, 41);
             this.txtLocate.Name = "txtLocate";
             this.txtLocate.Size = new System.Drawing.Size(120, 20);
             this.txtLocate.TabIndex = 1;
@@ -85,7 +83,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(12, 73);
+            this.label2.Location = new System.Drawing.Point(12, 44);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(44, 13);
             this.label2.TabIndex = 5;
@@ -93,7 +91,7 @@
             // 
             // btnDisconnect
             // 
-            this.btnDisconnect.Location = new System.Drawing.Point(12, 99);
+            this.btnDisconnect.Location = new System.Drawing.Point(12, 70);
             this.btnDisconnect.Name = "btnDisconnect";
             this.btnDisconnect.Size = new System.Drawing.Size(260, 23);
             this.btnDisconnect.TabIndex = 6;
@@ -101,29 +99,11 @@
             this.btnDisconnect.UseVisualStyleBackColor = true;
             this.btnDisconnect.Click += new System.EventHandler(this.btnDisconnect_Click);
             // 
-            // txtPass
-            // 
-            this.txtPass.Location = new System.Drawing.Point(71, 38);
-            this.txtPass.Name = "txtPass";
-            this.txtPass.Size = new System.Drawing.Size(120, 20);
-            this.txtPass.TabIndex = 7;
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(12, 41);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(53, 13);
-            this.label3.TabIndex = 8;
-            this.label3.Text = "Password";
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(284, 134);
-            this.Controls.Add(this.label3);
-            this.Controls.Add(this.txtPass);
+            this.ClientSize = new System.Drawing.Size(284, 105);
             this.Controls.Add(this.btnDisconnect);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
@@ -148,8 +128,6 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Button btnDisconnect;
-        private System.Windows.Forms.TextBox txtPass;
-        private System.Windows.Forms.Label label3;
     }
 }
 
